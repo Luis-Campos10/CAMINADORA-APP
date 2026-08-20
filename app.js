@@ -233,6 +233,16 @@ motor.addEventListener('estado-sesion', (ev) => {
   $('btn-pausar').textContent = ev.detail.estado === EstadoSesion.PAUSADA ? '▶ Reanudar' : '⏸ Pausar';
 });
 
+motor.addEventListener('ajuste', (ev) => {
+  $('sesion-velocidad').textContent = `${ev.detail.velocidad.toFixed(1)} km/h`;
+  $('sesion-inclinacion').textContent = `${ev.detail.inclinacion}`;
+});
+
+$('btn-vel-menos').addEventListener('click', () => motor.ajustarVelocidad(-0.5));
+$('btn-vel-mas').addEventListener('click', () => motor.ajustarVelocidad(0.5));
+$('btn-incl-menos').addEventListener('click', () => motor.ajustarInclinacion(-1));
+$('btn-incl-mas').addEventListener('click', () => motor.ajustarInclinacion(1));
+
 motor.addEventListener('sesion-fin', (ev) => {
   const r = ev.detail;
   guardarSesion(diaRealSesion, diaSeleccionado, sesionArmada.variante, r);

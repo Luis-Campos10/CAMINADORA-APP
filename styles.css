@@ -248,6 +248,16 @@ button.secundario {
   margin-top: 2px;
 }
 
+.ajuste-fila {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.ajuste-fila button {
+  flex: 1;
+  padding: 8px 4px;
+}
+
 .fc-objetivo {
   text-align: center;
   color: var(--amarillo);

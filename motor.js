@@ -158,11 +158,33 @@ export class MotorEntrenamiento extends EventTarget {
     return new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
+  // Ajuste manual del bloque en curso (ej. por FC): sube/baja la velocidad
+  // u inclinacion respecto al valor programado del bloque, sin esperar a
+  // que termine. El "latido" reenvia este valor ajustado, no el original
+  // del plan, para no pisar el ajuste.
+  async ajustarVelocidad(delta) {
+    if (this.estado !== EstadoSesion.CORRIENDO) return;
+    this._velocidadActual = Math.round((this._velocidadActual + delta) * 10) / 10;
+    await this.caminadora.setVelocidad(this._velocidadActual);
+    this._emit('ajuste', { velocidad: this._velocidadActual, inclinacion: this._inclinacionActual });
+  }
+
+  async ajustarInclinacion(delta) {
+    if (this.estado !== EstadoSesion.CORRIENDO) return;
+    this._inclinacionActual = this._inclinacionActual + delta;
+    await this.caminadora.setInclinacion(this._inclinacionActual);
+    this._emit('ajuste', { velocidad: this._velocidadActual, inclinacion: this._inclinacionActual });
+  }
+
   async _ejecutarBloque(bloque, indice, total) {
     this._emit('bloque-inicio', { bloque, indice, total });
 
-    await this.caminadora.setVelocidad(bloque.velocidad_kmh);
-    await this.caminadora.setInclinacion(bloque.inclinacion_pct);
+    // valores "en vivo" del bloque, arrancan en lo programado pero se
+    // pueden ajustar manualmente durante el bloque (ver ajustarVelocidad).
+    this._velocidadActual = bloque.velocidad_kmh;
+    this._inclinacionActual = bloque.inclinacion_pct;
+    await this.caminadora.setVelocidad(this._velocidadActual);
+    await this.caminadora.setInclinacion(this._inclinacionActual);
 
     let restante = bloque.duracion_seg;
     let ultimoKeepalive = performance.now();
@@ -174,9 +196,11 @@ export class MotorEntrenamiento extends EventTarget {
       }
       // Latido periodico: sin comandos repetidos la caminadora real corta
       // la banda sola tras ~1 min (ver docs/protocolo_caminadora.md).
+      // Reenvia el valor ACTUAL (con ajustes manuales aplicados), no el
+      // original del plan.
       if (performance.now() - ultimoKeepalive >= KEEPALIVE_MS) {
-        await this.caminadora.setVelocidad(bloque.velocidad_kmh);
-        await this.caminadora.setInclinacion(bloque.inclinacion_pct);
+        await this.caminadora.setVelocidad(this._velocidadActual);
+        await this.caminadora.setInclinacion(this._inclinacionActual);
         ultimoKeepalive = performance.now();
       }
       this._emit('tick', { restante, bloque, indice, total });
