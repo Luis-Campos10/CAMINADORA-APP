@@ -9,6 +9,7 @@ import {
   EstadoSesion,
   guardarSesion,
   listarSesiones,
+  borrarSesion,
 } from './motor.js';
 import { EditorPlan, renderEditorBloques } from './editor.js';
 import { pedirWakeLock, liberarWakeLock, avisarNuevoBloque, avisarSesionCompleta } from './extras.js';
@@ -287,8 +288,29 @@ $('btn-resultado-volver').addEventListener('click', () => {
 // Historial
 // ---------------------------------------------------------------------------
 
-function renderHistorial() {
-  const sesiones = listarSesiones().slice().reverse();
+function cambiarTabHistorial(nombre) {
+  $('historial-vista-lista').classList.toggle('oculto', nombre !== 'lista');
+  $('historial-vista-resumen').classList.toggle('oculto', nombre !== 'resumen');
+  $('historial-tab-lista').classList.toggle('activo', nombre === 'lista');
+  $('historial-tab-resumen').classList.toggle('activo', nombre === 'resumen');
+}
+$('historial-tab-lista').addEventListener('click', () => cambiarTabHistorial('lista'));
+$('historial-tab-resumen').addEventListener('click', () => cambiarTabHistorial('resumen'));
+
+function renderEstadisticasGenerales(sesiones) {
+  const haceUnaSemana = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const totalMin = sesiones.reduce((acc, s) => acc + s.duracion_total_seg / 60, 0);
+  const estaSemana = sesiones.filter((s) => new Date(s.fecha).getTime() >= haceUnaSemana).length;
+  const completas = sesiones.filter((s) => !s.abortada).length;
+  const porcentaje = sesiones.length ? Math.round((completas / sesiones.length) * 100) : 0;
+
+  $('stat-total-sesiones').textContent = sesiones.length;
+  $('stat-total-minutos').textContent = Math.round(totalMin);
+  $('stat-semana').textContent = estaSemana;
+  $('stat-completadas').textContent = sesiones.length ? `${porcentaje}%` : '--';
+}
+
+function renderListaHistorial(sesiones) {
   $('historial-vacio').classList.toggle('oculto', sesiones.length > 0);
   const tbody = $('tbody-historial');
   tbody.innerHTML = '';
@@ -301,9 +323,52 @@ function renderHistorial() {
       <td>${s.bloques_completados}/${s.bloques_totales}</td>
       <td>${mins}</td>
       <td>${s.abortada ? 'abortada' : 'completa'}</td>
+      <td><button class="secundario boton-mini btn-borrar-sesion" data-id="${s.id}">✕</button></td>
     `;
     tbody.appendChild(tr);
   }
+  tbody.querySelectorAll('.btn-borrar-sesion').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!confirm('¿Borrar esta sesion del historial?')) return;
+      borrarSesion(Number(btn.dataset.id));
+      renderHistorial();
+    });
+  });
+}
+
+function renderResumenHistorial(sesiones) {
+  $('resumen-vacio').classList.toggle('oculto', sesiones.length > 0);
+  const porRutina = new Map();
+  for (const s of sesiones) {
+    if (!porRutina.has(s.diaPlan)) porRutina.set(s.diaPlan, []);
+    porRutina.get(s.diaPlan).push(s);
+  }
+  const tbody = $('tbody-resumen');
+  tbody.innerHTML = '';
+  const filas = [...porRutina.entries()].sort((a, b) => b[1].length - a[1].length);
+  for (const [rutina, lista] of filas) {
+    const completas = lista.filter((s) => !s.abortada).length;
+    const minProm = lista.reduce((acc, s) => acc + s.duracion_total_seg / 60, 0) / lista.length;
+    const velProm = lista.reduce((acc, s) => acc + s.velocidad_promedio, 0) / lista.length;
+    const inclProm = lista.reduce((acc, s) => acc + s.inclinacion_promedio, 0) / lista.length;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${rutina}</td>
+      <td>${lista.length}</td>
+      <td>${completas}</td>
+      <td>${minProm.toFixed(1)}</td>
+      <td>${velProm.toFixed(2)}</td>
+      <td>${inclProm.toFixed(2)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderHistorial() {
+  const sesiones = listarSesiones().slice().reverse();
+  renderEstadisticasGenerales(sesiones);
+  renderListaHistorial(sesiones);
+  renderResumenHistorial(sesiones);
 }
 
 // ---------------------------------------------------------------------------

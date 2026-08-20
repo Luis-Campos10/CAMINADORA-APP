@@ -117,7 +117,33 @@
 
     <!-- ============ VISTA: HISTORIAL ============ -->
     <section id="vista-historial" class="oculto">
-      <div class="tarjeta">
+      <div class="tarjeta" id="historial-stats-tarjeta">
+        <div class="metricas" style="grid-template-columns: repeat(4, 1fr); gap:8px;">
+          <div class="metrica">
+            <div class="valor" id="stat-total-sesiones" style="font-size:1.3rem;">0</div>
+            <div class="etiqueta">Sesiones</div>
+          </div>
+          <div class="metrica">
+            <div class="valor" id="stat-total-minutos" style="font-size:1.3rem;">0</div>
+            <div class="etiqueta">Min. totales</div>
+          </div>
+          <div class="metrica">
+            <div class="valor" id="stat-semana" style="font-size:1.3rem;">0</div>
+            <div class="etiqueta">Esta semana</div>
+          </div>
+          <div class="metrica">
+            <div class="valor" id="stat-completadas" style="font-size:1.3rem;">--</div>
+            <div class="etiqueta">% completas</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button id="historial-tab-lista" class="activo">Lista</button>
+        <button id="historial-tab-resumen">Por rutina</button>
+      </div>
+
+      <div class="tarjeta" id="historial-vista-lista">
         <div id="historial-vacio" class="vacio oculto">Todavia no hay sesiones guardadas.</div>
         <div style="overflow-x:auto;">
           <table class="historial" id="tabla-historial">
@@ -128,9 +154,29 @@
                 <th>Bloques</th>
                 <th>Min</th>
                 <th>Estado</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="tbody-historial"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tarjeta oculto" id="historial-vista-resumen">
+        <div id="resumen-vacio" class="vacio oculto">Todavia no hay sesiones guardadas.</div>
+        <div style="overflow-x:auto;">
+          <table class="historial" id="tabla-resumen">
+            <thead>
+              <tr>
+                <th>Rutina</th>
+                <th>Sesiones</th>
+                <th>Completas</th>
+                <th>Min. prom</th>
+                <th>Vel. prom</th>
+                <th>Incl. prom</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-resumen"></tbody>
           </table>
         </div>
       </div>
