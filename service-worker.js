@@ -1,4 +1,4 @@
-const CACHE_NAME = 'caminadora-v1';
+const CACHE_NAME = 'caminadora-v2';
 const ARCHIVOS = [
   './',
   './index.html',
@@ -26,8 +26,16 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Red primero (para no quedar pegado en versiones viejas mientras la app
+// esta en desarrollo activo); si no hay conexion, usa lo cacheado.
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((cacheado) => cacheado || fetch(event.request)),
+    fetch(event.request)
+      .then((respuesta) => {
+        const copia = respuesta.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copia));
+        return respuesta;
+      })
+      .catch(() => caches.match(event.request)),
   );
 });
