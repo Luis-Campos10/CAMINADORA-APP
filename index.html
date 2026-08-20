@@ -80,7 +80,8 @@
         <div class="metricas">
           <div class="metrica">
             <div class="valor" id="sesion-velocidad">-- km/h</div>
-            <div class="etiqueta">Velocidad</div>
+            <div class="etiqueta">Velocidad (objetivo)</div>
+            <div class="valor-real" id="sesion-velocidad-real">real: --</div>
             <div class="ajuste-fila">
               <button id="btn-vel-menos" class="secundario boton-mini">−0.5</button>
               <button id="btn-vel-mas" class="secundario boton-mini">+0.5</button>
@@ -88,7 +89,8 @@
           </div>
           <div class="metrica">
             <div class="valor" id="sesion-inclinacion">--</div>
-            <div class="etiqueta">Inclinacion</div>
+            <div class="etiqueta">Inclinacion (objetivo)</div>
+            <div class="valor-real" id="sesion-inclinacion-real">real: --</div>
             <div class="ajuste-fila">
               <button id="btn-incl-menos" class="secundario boton-mini">−1</button>
               <button id="btn-incl-mas" class="secundario boton-mini">+1</button>
@@ -139,7 +141,12 @@
       <div id="editor-panel-dias" class="tarjeta">
         <p>Elegi que dia queres editar.</p>
         <div class="grid-dias" id="editor-grid-dias"></div>
-        <button id="btn-restaurar-plan" class="secundario" style="width:100%; margin-top:14px;">↺ Restaurar plan original</button>
+        <div class="variantes" style="margin-top:14px;">
+          <button id="btn-exportar-plan" class="secundario">⬇ Exportar plan</button>
+          <button id="btn-importar-plan" class="secundario">⬆ Importar plan</button>
+        </div>
+        <input type="file" id="input-importar-plan" accept="application/json" class="oculto" />
+        <button id="btn-restaurar-plan" class="secundario" style="width:100%; margin-top:10px;">↺ Restaurar plan original</button>
       </div>
 
       <div id="editor-panel-bloques" class="tarjeta oculto">

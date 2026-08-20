@@ -197,10 +197,13 @@ export class MotorEntrenamiento extends EventTarget {
       // Latido periodico: sin comandos repetidos la caminadora real corta
       // la banda sola tras ~1 min (ver docs/protocolo_caminadora.md).
       // Reenvia el valor ACTUAL (con ajustes manuales aplicados), no el
-      // original del plan.
+      // original del plan. Aprovecha el mismo intervalo para consultar el
+      // estado real y mostrarlo en la UI junto al objetivo.
       if (performance.now() - ultimoKeepalive >= KEEPALIVE_MS) {
         await this.caminadora.setVelocidad(this._velocidadActual);
         await this.caminadora.setInclinacion(this._inclinacionActual);
+        const estado = await this.caminadora.leerEstado();
+        this._emit('estado-real', estado);
         ultimoKeepalive = performance.now();
       }
       this._emit('tick', { restante, bloque, indice, total });

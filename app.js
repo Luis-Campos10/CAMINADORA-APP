@@ -3,6 +3,7 @@ import {
   DIAS_ES,
   diaDeHoy,
   cargarPlan,
+  guardarPlan,
   armarSesion,
   MotorEntrenamiento,
   EstadoSesion,
@@ -10,6 +11,7 @@ import {
   listarSesiones,
 } from './motor.js';
 import { EditorPlan, renderEditorBloques } from './editor.js';
+import { pedirWakeLock, liberarWakeLock, avisarNuevoBloque, avisarSesionCompleta } from './extras.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -180,24 +182,29 @@ $('btn-iniciar-sesion').addEventListener('click', async () => {
     $('panel-resumen').classList.add('oculto');
     $('panel-sesion').classList.remove('oculto');
     $('btn-pausar').textContent = '⏸ Pausar';
+    await pedirWakeLock();
     await motor.ejecutarSesion(sesionArmada.bloques);
   } catch (e) {
     alert('No se pudo conectar con la caminadora: ' + e.message);
     $('panel-sesion').classList.add('oculto');
     $('panel-resumen').classList.remove('oculto');
   } finally {
+    await liberarWakeLock();
     $('btn-iniciar-sesion').disabled = false;
     $('btn-iniciar-sesion').textContent = 'Iniciar entrenamiento';
   }
 });
 
 motor.addEventListener('bloque-inicio', (ev) => {
+  avisarNuevoBloque();
   const { bloque, indice, total } = ev.detail;
   $('sesion-bloque-nombre').textContent = bloque.nombre;
   $('sesion-velocidad').textContent = `${bloque.velocidad_kmh} km/h`;
   $('sesion-inclinacion').textContent = `${bloque.inclinacion_pct}`;
   $('sesion-progreso-texto').textContent = `bloque ${indice + 1}/${total}`;
   $('anillo-progreso').style.strokeDashoffset = `${CIRCUNFERENCIA_ANILLO}`;
+  $('sesion-velocidad-real').textContent = 'real: --';
+  $('sesion-inclinacion-real').textContent = 'real: --';
 
   const fcMin = bloque.fc_objetivo_min;
   const fcMax = bloque.fc_objetivo_max;
@@ -238,6 +245,12 @@ motor.addEventListener('ajuste', (ev) => {
   $('sesion-inclinacion').textContent = `${ev.detail.inclinacion}`;
 });
 
+motor.addEventListener('estado-real', (ev) => {
+  const estado = ev.detail;
+  $('sesion-velocidad-real').textContent = `real: ${estado.velocidadKmh.toFixed(1)} km/h${estado.enMarcha ? '' : ' (detenida)'}`;
+  $('sesion-inclinacion-real').textContent = `real: ${estado.inclinacionNivel}`;
+});
+
 $('btn-vel-menos').addEventListener('click', () => motor.ajustarVelocidad(-0.5));
 $('btn-vel-mas').addEventListener('click', () => motor.ajustarVelocidad(0.5));
 $('btn-incl-menos').addEventListener('click', () => motor.ajustarInclinacion(-1));
@@ -245,6 +258,7 @@ $('btn-incl-mas').addEventListener('click', () => motor.ajustarInclinacion(1));
 
 motor.addEventListener('sesion-fin', (ev) => {
   const r = ev.detail;
+  if (!r.abortada) avisarSesionCompleta();
   guardarSesion(diaRealSesion, diaSeleccionado, sesionArmada.variante, r);
 
   $('panel-sesion').classList.add('oculto');
@@ -323,6 +337,41 @@ function refrescarEditorBloques() {
 }
 
 $('btn-editor-volver').addEventListener('click', mostrarEditorDias);
+
+$('btn-exportar-plan').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(plan, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `plan_semanal_${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+$('btn-importar-plan').addEventListener('click', () => {
+  $('input-importar-plan').click();
+});
+
+$('input-importar-plan').addEventListener('change', async (ev) => {
+  const archivo = ev.target.files[0];
+  if (!archivo) return;
+  try {
+    const texto = await archivo.text();
+    const nuevoPlan = JSON.parse(texto);
+    if (!nuevoPlan.dias) throw new Error('el archivo no tiene el formato esperado (falta "dias")');
+    plan = nuevoPlan;
+    guardarPlan(plan);
+    editor = new EditorPlan(plan);
+    alert('Plan importado correctamente.');
+    mostrarEditorDias();
+  } catch (e) {
+    alert('No se pudo importar el plan: ' + e.message);
+  } finally {
+    ev.target.value = '';
+  }
+});
 
 $('editor-btn-variante-a').addEventListener('click', () => {
   editor.cambiarVariante('A');

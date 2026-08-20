@@ -258,6 +258,12 @@ button.secundario {
   padding: 8px 4px;
 }
 
+.valor-real {
+  font-size: 0.72rem;
+  color: var(--texto-tenue-2);
+  margin-top: 2px;
+}
+
 .fc-objetivo {
   text-align: center;
   color: var(--amarillo);

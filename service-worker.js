@@ -7,6 +7,7 @@ const ARCHIVOS = [
   './ble.js',
   './motor.js',
   './editor.js',
+  './extras.js',
   './plan_semanal.json',
   './manifest.json',
   './icons/icon.svg',
