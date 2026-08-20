@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Caminadora VO2max</title>
+  <meta name="theme-color" content="#1a1f2b" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>🏃 Caminadora</h1>
+      <div class="estado-conexion">
+        <span class="punto" id="punto-conexion"></span>
+        <span id="texto-conexion">Sin conectar</span>
+      </div>
+    </header>
+
+    <div id="aviso-no-soportado" class="aviso oculto">
+      Este navegador no soporta Web Bluetooth. Abri esta pagina en Chrome para Android.
+    </div>
+
+    <div class="tabs">
+      <button id="tab-entrenar" class="activo">Entrenar</button>
+      <button id="tab-historial">Historial</button>
+      <button id="tab-editar">Editar plan</button>
+    </div>
+
+    <!-- ============ VISTA: ENTRENAR ============ -->
+    <section id="vista-entrenar">
+
+      <!-- Paso 1: elegir dia -->
+      <div id="panel-dias" class="tarjeta oculto">
+        <p>¿Que plan queres correr hoy?</p>
+        <div class="grid-dias" id="grid-dias"></div>
+      </div>
+
+      <!-- Paso 2b: elegir variante -->
+      <div id="panel-variante" class="tarjeta oculto">
+        <p id="variante-prompt"></p>
+        <div class="variantes">
+          <button id="btn-variante-a" class="secundario"></button>
+          <button id="btn-variante-b" class="secundario"></button>
+        </div>
+        <button id="btn-variante-volver" class="secundario" style="margin-top:10px; width:100%;">← Volver</button>
+      </div>
+
+      <!-- Paso 3: resumen antes de arrancar -->
+      <div id="panel-resumen" class="tarjeta oculto">
+        <h2 id="resumen-nombre"></h2>
+        <p id="resumen-detalle"></p>
+        <button id="btn-iniciar-sesion" class="primario" style="width:100%;">Iniciar entrenamiento</button>
+        <button id="btn-resumen-volver" class="secundario" style="margin-top:10px; width:100%;">← Volver</button>
+      </div>
+
+      <!-- Paso 4: sesion en curso -->
+      <div id="panel-sesion" class="tarjeta oculto">
+        <div class="bloque-nombre" id="sesion-bloque-nombre">--</div>
+        <div class="anillo-wrap">
+          <svg viewBox="0 0 220 220">
+            <defs>
+              <linearGradient id="gradAnillo" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#34e0a1" />
+                <stop offset="100%" stop-color="#22b8f0" />
+              </linearGradient>
+            </defs>
+            <circle class="anillo-fondo" cx="110" cy="110" r="98" />
+            <circle class="anillo-progreso" id="anillo-progreso" cx="110" cy="110" r="98" />
+          </svg>
+          <div class="anillo-centro">
+            <div class="countdown" id="sesion-countdown">00:00</div>
+          </div>
+        </div>
+        <div id="sesion-fc" class="fc-objetivo oculto"></div>
+
+        <div class="metricas">
+          <div class="metrica">
+            <div class="valor" id="sesion-velocidad">-- km/h</div>
+            <div class="etiqueta">Velocidad</div>
+          </div>
+          <div class="metrica">
+            <div class="valor" id="sesion-inclinacion">--</div>
+            <div class="etiqueta">Inclinacion</div>
+          </div>
+        </div>
+
+        <div class="progreso-barra"><div id="sesion-progreso-fill" style="width:0%"></div></div>
+        <div class="progreso-texto" id="sesion-progreso-texto">bloque 0/0</div>
+
+        <div class="controles-sesion">
+          <button id="btn-pausar" class="secundario">⏸ Pausar</button>
+          <button id="btn-abortar" class="peligro">⏹ Abortar</button>
+        </div>
+      </div>
+
+      <!-- Paso 5: resultado -->
+      <div id="panel-resultado" class="tarjeta oculto">
+        <h2 id="resultado-titulo"></h2>
+        <p id="resultado-detalle"></p>
+        <button id="btn-resultado-volver" class="primario" style="width:100%;">Volver al inicio</button>
+      </div>
+    </section>
+
+    <!-- ============ VISTA: HISTORIAL ============ -->
+    <section id="vista-historial" class="oculto">
+      <div class="tarjeta">
+        <div id="historial-vacio" class="vacio oculto">Todavia no hay sesiones guardadas.</div>
+        <div style="overflow-x:auto;">
+          <table class="historial" id="tabla-historial">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Rutina</th>
+                <th>Bloques</th>
+                <th>Min</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-historial"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ VISTA: EDITAR PLAN ============ -->
+    <section id="vista-editar" class="oculto">
+      <div id="editor-panel-dias" class="tarjeta">
+        <p>Elegi que dia queres editar.</p>
+        <div class="grid-dias" id="editor-grid-dias"></div>
+        <button id="btn-restaurar-plan" class="secundario" style="width:100%; margin-top:14px;">↺ Restaurar plan original</button>
+      </div>
+
+      <div id="editor-panel-bloques" class="tarjeta oculto">
+        <button id="btn-editor-volver" class="secundario" style="margin-bottom:14px;">← Volver</button>
+
+        <div id="editor-variantes" class="variantes oculto" style="margin-bottom:14px;">
+          <button id="editor-btn-variante-a" class="secundario"></button>
+          <button id="editor-btn-variante-b" class="secundario"></button>
+        </div>
+
+        <div id="editor-campos-bloques"></div>
+
+        <div class="acciones-editor" id="editor-acciones-agregar">
+          <button id="btn-agregar-bloque" class="secundario">+ Bloque</button>
+          <button id="btn-agregar-grupo" class="secundario">+ Grupo repetido</button>
+        </div>
+
+        <button id="btn-guardar-plan" class="primario" style="width:100%; margin-top:14px;">Guardar cambios</button>
+      </div>
+    </section>
+
+    <!-- ============ DEBUG (solo visible con ?debug en la URL) ============ -->
+    <section id="vista-debug" class="oculto">
+      <div class="tarjeta">
+        <p style="margin-top:0;">Debug BLE (bytes crudos enviados/recibidos)</p>
+        <pre id="debug-log" style="max-height:300px; overflow-y:auto; font-size:0.72rem; white-space:pre-wrap; color:var(--texto-tenue); margin:0;"></pre>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

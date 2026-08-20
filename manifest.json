@@ -1,0 +1,15 @@
+{
+  "name": "Caminadora VO2max",
+  "short_name": "Caminadora",
+  "description": "Control BLE de la caminadora y motor de entrenamiento VO2max",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1f2b",
+  "theme_color": "#1a1f2b",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,216 @@
+{
+  "meta": {
+    "fc_max_referencia": 185,
+    "edad": 33,
+    "nota_fc_max": "Plan calculado sobre 185 bpm. Si se retoma 194 bpm (sesion del 28 de junio) como FCmax real, recalcular todos los fc_objetivo_* antes de usar este archivo como guia.",
+    "nota_inclinacion": "El texto original del plan describe la inclinacion en %, pero la caminadora la controla por niveles (1-15). El campo 'inclinacion_pct' se deja tal cual el plan hasta que docs/protocolo_caminadora.md confirme la conversion nivel<->%.",
+    "nota_velocidad": "Donde el plan daba un rango (ej. 4.5-5.0 km/h) se eligio un valor puntual razonable (punto medio o conservador). Ajusta libremente los numeros de este archivo, es la config editable del motor."
+  },
+  "dias": {
+    "lunes": {
+      "tipo": "variante_manual",
+      "prompt": "Lunes: (A) descanso total o (B) caminata de recuperacion 20 min. Elegi A/B: ",
+      "variantes": {
+        "A": { "nombre": "Descanso total", "bloques": [] },
+        "B": {
+          "nombre": "Caminata de recuperacion",
+          "bloques": [
+            {
+              "nombre": "Caminata suave",
+              "duracion_seg": 1200,
+              "velocidad_kmh": 3.75,
+              "inclinacion_pct": 1,
+              "zona": "recuperacion",
+              "fc_objetivo_max": 120
+            }
+          ]
+        }
+      }
+    },
+    "martes": {
+      "tipo": "fijo",
+      "nombre": "Zona 2 - base aerobica",
+      "bloques": [
+        {
+          "nombre": "Calentamiento",
+          "duracion_seg": 300,
+          "velocidad_kmh": 3.5,
+          "inclinacion_pct": 1,
+          "zona": "calentamiento"
+        },
+        {
+          "nombre": "Cuerpo principal",
+          "duracion_seg": 1980,
+          "velocidad_kmh": 4.75,
+          "inclinacion_pct": 4,
+          "zona": "zona2",
+          "fc_objetivo_min": 111,
+          "fc_objetivo_max": 135,
+          "nota": "Si FC supera 140 bpm, bajar 0.5 km/h manualmente. Duracion 33 min (punto medio de 30-35 min)."
+        },
+        {
+          "nombre": "Enfriamiento",
+          "duracion_seg": 300,
+          "velocidad_kmh": 3.5,
+          "inclinacion_pct": 0,
+          "zona": "enfriamiento"
+        }
+      ]
+    },
+    "miercoles": {
+      "tipo": "fijo",
+      "nombre": "4x4 Noruego (unica sesion VO2max de la semana)",
+      "bloques": [
+        {
+          "nombre": "Calentamiento",
+          "duracion_seg": 600,
+          "velocidad_kmh": 4.5,
+          "inclinacion_pct": 1.5,
+          "zona": "calentamiento",
+          "fc_objetivo_min": 116,
+          "fc_objetivo_max": 135
+        },
+        {
+          "repetir": 4,
+          "bloques": [
+            {
+              "nombre": "Trabajo 4x4",
+              "duracion_seg": 240,
+              "velocidad_kmh": 6.0,
+              "inclinacion_pct": 7,
+              "zona": "vo2max",
+              "fc_objetivo_min": 165,
+              "fc_objetivo_max": 176
+            },
+            {
+              "nombre": "Recuperacion 4x4",
+              "duracion_seg": 180,
+              "velocidad_kmh": 4.0,
+              "inclinacion_pct": 0,
+              "zona": "recuperacion",
+              "fc_objetivo_min": 116,
+              "fc_objetivo_max": 135
+            }
+          ]
+        },
+        {
+          "nombre": "Enfriamiento",
+          "duracion_seg": 300,
+          "velocidad_kmh": 3.5,
+          "inclinacion_pct": 0,
+          "zona": "enfriamiento",
+          "fc_objetivo_max": 120
+        }
+      ]
+    },
+    "jueves": {
+      "tipo": "variante_manual",
+      "prompt": "Jueves: (A) descanso total o (B) zona 2 suave 20-25 min. Elegi A/B: ",
+      "variantes": {
+        "A": { "nombre": "Descanso total", "bloques": [] },
+        "B": {
+          "nombre": "Zona 2 suave",
+          "bloques": [
+            {
+              "nombre": "Calentamiento",
+              "duracion_seg": 180,
+              "velocidad_kmh": 3.5,
+              "inclinacion_pct": 1,
+              "zona": "calentamiento"
+            },
+            {
+              "nombre": "Zona 2 ligera",
+              "duracion_seg": 1080,
+              "velocidad_kmh": 4.25,
+              "inclinacion_pct": 2,
+              "zona": "zona2_ligera",
+              "fc_objetivo_max": 135
+            },
+            {
+              "nombre": "Enfriamiento",
+              "duracion_seg": 180,
+              "velocidad_kmh": 3.5,
+              "inclinacion_pct": 0,
+              "zona": "enfriamiento"
+            }
+          ]
+        }
+      }
+    },
+    "viernes": {
+      "tipo": "fijo",
+      "nombre": "Sprints de potencia",
+      "bloques": [
+        {
+          "nombre": "Calentamiento (trote suave + movilidad)",
+          "duracion_seg": 600,
+          "velocidad_kmh": 5.5,
+          "inclinacion_pct": 1,
+          "zona": "calentamiento"
+        },
+        {
+          "repetir": 6,
+          "nota_repetir": "Plan permite 6-8 repeticiones; segun progresion subir repeticiones antes que alargar el sprint.",
+          "bloques": [
+            {
+              "nombre": "Sprint",
+              "duracion_seg": 9,
+              "velocidad_kmh": 9.5,
+              "inclinacion_pct": 7,
+              "zona": "sprint",
+              "nota": "Esfuerzo maximo tolerable; ajustar velocidad_kmh manualmente segun capacidad (caminadora llega a 16 km/h)."
+            },
+            {
+              "nombre": "Recuperacion completa",
+              "duracion_seg": 90,
+              "velocidad_kmh": 3.0,
+              "inclinacion_pct": 0,
+              "zona": "recuperacion",
+              "fc_objetivo_max": 130
+            }
+          ]
+        },
+        {
+          "nombre": "Enfriamiento",
+          "duracion_seg": 480,
+          "velocidad_kmh": 3.5,
+          "inclinacion_pct": 0,
+          "zona": "enfriamiento"
+        }
+      ]
+    },
+    "sabado": {
+      "tipo": "variante_manual",
+      "prompt": "Sabado: (A) descanso total o (B) caminata muy ligera 15-20 min. Elegi A/B: ",
+      "variantes": {
+        "A": { "nombre": "Descanso total", "bloques": [] },
+        "B": {
+          "nombre": "Caminata muy ligera",
+          "bloques": [
+            {
+              "nombre": "Caminata conversacional",
+              "duracion_seg": 1050,
+              "velocidad_kmh": 3.5,
+              "inclinacion_pct": 0,
+              "zona": "recuperacion",
+              "fc_objetivo_max": 120,
+              "nota": "Prioridad: llegar fresco al futbol del domingo."
+            }
+          ]
+        }
+      }
+    },
+    "domingo": {
+      "tipo": "externo",
+      "nombre": "Futbol",
+      "nota": "Sesion ancla de alta intensidad (17-26 min en zona anaerobica por partido). No se codifica en el motor; se puede registrar manualmente en el historico si se desea."
+    }
+  },
+  "progresion": {
+    "notas": [
+      "4x4: si el rango de FC objetivo se domina con facilidad varias semanas seguidas, subir inclinacion +1% antes que subir velocidad (protege rodillas).",
+      "Sprints: aumentar repeticiones a 8-10 antes de alargar la duracion del sprint.",
+      "Cada 4 semanas, comparar la FC promedio en la sesion de zona 2 a la misma velocidad como indicador de mejora de VO2max (si baja, va bien)."
+    ]
+  }
+}
