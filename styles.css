@@ -44,9 +44,31 @@ html, body {
 
 header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 22px;
+}
+
+.pastillas-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.estado-conexion-btn {
+  border: 1px solid var(--borde-suave);
+  cursor: pointer;
+}
+.estado-conexion-btn .punto.conectado {
+  background: var(--rojo);
+  box-shadow: 0 0 8px 1px rgba(255, 107, 107, 0.6);
+}
+.estado-conexion-btn .punto.sin-contacto {
+  background: var(--amarillo);
+  box-shadow: 0 0 8px 1px rgba(255, 200, 87, 0.6);
 }
 
 header h1 {

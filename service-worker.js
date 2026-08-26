@@ -8,6 +8,7 @@ const ARCHIVOS = [
   './motor.js',
   './editor.js',
   './extras.js',
+  './hr.js',
   './plan_semanal.json',
   './manifest.json',
   './icons/icon.svg',

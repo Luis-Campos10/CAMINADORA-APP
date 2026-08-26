@@ -13,11 +13,13 @@ import {
 } from './motor.js';
 import { EditorPlan, renderEditorBloques } from './editor.js';
 import { pedirWakeLock, liberarWakeLock, avisarNuevoBloque, avisarSesionCompleta } from './extras.js';
+import { MonitorFC } from './hr.js';
 
 const $ = (id) => document.getElementById(id);
 
 const caminadora = new CaminadoraBLE();
 const motor = new MotorEntrenamiento(caminadora);
+const monitorFC = new MonitorFC();
 
 let plan = null;
 let diaSeleccionado = null;
@@ -86,6 +88,45 @@ if (MODO_DEBUG) {
     log.scrollTop = log.scrollHeight;
   });
 }
+
+// ---------------------------------------------------------------------------
+// Monitor de frecuencia cardiaca (reloj)
+// ---------------------------------------------------------------------------
+
+monitorFC.addEventListener('conectado', () => {
+  $('punto-fc').classList.add('conectado');
+  $('texto-fc').textContent = '-- bpm';
+});
+
+monitorFC.addEventListener('desconectado', () => {
+  $('punto-fc').classList.remove('conectado', 'sin-contacto');
+  $('texto-fc').textContent = '❤ Reloj';
+});
+
+monitorFC.addEventListener('fc', (ev) => {
+  const { bpm, contacto } = ev.detail;
+  $('texto-fc').textContent = `${bpm} bpm`;
+  $('punto-fc').classList.toggle('sin-contacto', contacto === false);
+});
+
+$('btn-conectar-fc').addEventListener('click', async () => {
+  if (SIN_SOPORTE_BLUETOOTH) {
+    alert('Este navegador no soporta Web Bluetooth. Abri esta pagina en Chrome para Android.');
+    return;
+  }
+  if (monitorFC.conectado) return; // ya conectado, el pill solo informa
+  $('texto-fc').textContent = 'Conectando...';
+  try {
+    await monitorFC.conectar();
+  } catch (e) {
+    $('texto-fc').textContent = '❤ Reloj';
+    alert(
+      'No se pudo conectar con el reloj: ' + e.message +
+      '\n\nRecorda activar en el reloj: Ajustes > Mas conexiones > ' +
+      'Transmision de datos de frecuencia cardiaca, antes de conectar.',
+    );
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Seleccion de dia / variante
