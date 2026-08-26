@@ -286,6 +286,43 @@ button.secundario {
   margin-top: 2px;
 }
 
+.opcion-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio-md);
+  font-size: 0.82rem;
+  color: var(--texto-tenue);
+  cursor: pointer;
+}
+.opcion-checkbox input {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--verde);
+  flex-shrink: 0;
+}
+
+.auto-fc-estado {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 999px;
+  margin: 0 auto 10px;
+  width: fit-content;
+}
+.auto-fc-estado.en-zona { color: var(--verde); background: rgba(52, 224, 161, 0.12); }
+.auto-fc-estado.subiendo { color: var(--azul); background: rgba(90, 169, 255, 0.12); }
+.auto-fc-estado.bajando { color: var(--amarillo); background: rgba(255, 200, 87, 0.12); }
+.auto-fc-estado.seguridad { color: var(--rojo); background: rgba(255, 107, 107, 0.15); }
+.auto-fc-estado.sin-señal { color: var(--rojo); background: rgba(255, 107, 107, 0.15); }
+.auto-fc-estado.esperando, .auto-fc-estado.estabilizando { color: var(--texto-tenue); background: var(--bg-elev-2); }
+
 .fc-objetivo {
   text-align: center;
   color: var(--amarillo);

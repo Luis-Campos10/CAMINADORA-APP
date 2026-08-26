@@ -59,7 +59,12 @@
       <div id="panel-resumen" class="tarjeta oculto">
         <h2 id="resumen-nombre"></h2>
         <p id="resumen-detalle"></p>
-        <button id="btn-iniciar-sesion" class="primario" style="width:100%;">Iniciar entrenamiento</button>
+        <label class="opcion-checkbox" id="opcion-auto-fc">
+          <input type="checkbox" id="check-auto-fc" />
+          <span>Auto-ajustar velocidad con FC (±0.5 km/h, respeta zona objetivo de cada bloque)</span>
+        </label>
+        <p id="aviso-auto-fc" class="fc-objetivo oculto" style="text-align:left;">Conecta el reloj (❤ arriba) para poder activar esto.</p>
+        <button id="btn-iniciar-sesion" class="primario" style="width:100%; margin-top:14px;">Iniciar entrenamiento</button>
         <button id="btn-resumen-volver" class="secundario" style="margin-top:10px; width:100%;">← Volver</button>
       </div>
 
@@ -82,6 +87,7 @@
           </div>
         </div>
         <div id="sesion-fc" class="fc-objetivo oculto"></div>
+        <div id="sesion-auto-fc-estado" class="auto-fc-estado oculto"></div>
 
         <div class="metricas">
           <div class="metrica">

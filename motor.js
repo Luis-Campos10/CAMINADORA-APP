@@ -9,6 +9,21 @@ export const DIAS_ES = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sa
 // de inactividad (confirmado 2026-08-19, ver docs/protocolo_caminadora.md).
 const KEEPALIVE_MS = 10000;
 
+// Auto-ajuste de velocidad segun FC (opt-in por sesion). Parametros basados
+// en evidencia de cinetica de FC durante ejercicio (tau ~18-70s segun nivel
+// de entrenamiento; ver docs/protocolo_caminadora.md o el chat del
+// 2026-08-20 para las fuentes). No es un controlador LTI calibrado por
+// persona (séria overkill para esto) -- es un ajuste discreto conservador
+// con zona muerta y cooldown informados por esa cinetica.
+const FC_VENTANA_TAMANO = 8; // lecturas recientes para el promedio movil
+const FC_SIGNAL_STALE_MS = 15000; // sin lectura nueva en este tiempo = señal perdida
+const FC_GRACIA_INICIO_MS = 90000; // no ajustar en los primeros 90s del bloque (FC no estabilizada)
+const FC_COOLDOWN_MS = 45000; // minimo entre ajustes automaticos normales
+const FC_DEADBAND_BPM = 4; // margen fuera de la zona objetivo antes de actuar
+const FC_MARGEN_SEGURIDAD_BPM = 8; // por encima de esto, reducir YA (bypass gracia/cooldown)
+const FC_PASO_KMH = 0.5;
+const FC_MAX_DERIVA_KMH = 2.0; // no alejarse mas de esto del valor original del bloque (no aplica a la reduccion de seguridad)
+
 export function diaDeHoy() {
   // getDay(): 0=domingo..6=sabado -> reindexar a nuestro orden lunes..domingo
   const idx = (new Date().getDay() + 6) % 7;
@@ -128,10 +143,92 @@ export class MotorEntrenamiento extends EventTarget {
     this.estado = null; // EstadoSesion
     this._abortar = false;
     this._pausado = false;
+
+    this._autoFC = false;
+    this._ventanaFC = [];
+    this._fcUltimaLecturaTs = 0;
+    this._bloqueInicioTs = 0;
+    this._ultimoAjusteFCTs = 0;
+    this._velocidadBaseBloque = 0;
   }
 
   _emit(tipo, detalle) {
     this.dispatchEvent(new CustomEvent(tipo, { detail: detalle }));
+  }
+
+  // --- Auto-ajuste por FC --------------------------------------------------
+
+  activarAutoFC(activo) {
+    this._autoFC = activo;
+  }
+
+  // Llamar cada vez que llega una lectura nueva del monitor de FC (ver hr.js).
+  // Seguro llamarlo aunque no haya sesion corriendo o autoFC este apagado.
+  actualizarFC(bpm) {
+    this._fcUltimaLecturaTs = performance.now();
+    this._ventanaFC.push(bpm);
+    if (this._ventanaFC.length > FC_VENTANA_TAMANO) this._ventanaFC.shift();
+  }
+
+  _fcPromedio() {
+    if (!this._ventanaFC.length) return null;
+    return this._ventanaFC.reduce((a, b) => a + b, 0) / this._ventanaFC.length;
+  }
+
+  _fcSenalValida() {
+    return this._fcUltimaLecturaTs > 0 && performance.now() - this._fcUltimaLecturaTs < FC_SIGNAL_STALE_MS;
+  }
+
+  async _ajustarPorFC(delta, { ignorarDeriva = false } = {}) {
+    if (!ignorarDeriva) {
+      const objetivo = this._velocidadActual + delta;
+      if (Math.abs(objetivo - this._velocidadBaseBloque) > FC_MAX_DERIVA_KMH) return;
+    }
+    await this.ajustarVelocidad(delta);
+    this._ultimoAjusteFCTs = performance.now();
+  }
+
+  async _evaluarAutoFC(bloque) {
+    const tieneObjetivo = bloque.fc_objetivo_min != null || bloque.fc_objetivo_max != null;
+    if (!tieneObjetivo) return;
+
+    if (!this._fcSenalValida()) {
+      this._emit('fc-auto-estado', { estado: 'sin-señal', fcProm: null });
+      return;
+    }
+
+    const fcProm = this._fcPromedio();
+    if (fcProm == null) return;
+    const { fc_objetivo_min: min, fc_objetivo_max: max } = bloque;
+    const ahora = performance.now();
+
+    // Prioridad de seguridad: bien por encima del maximo, reducir ya,
+    // sin esperar el "periodo de gracia" ni el cooldown normal, y sin
+    // respetar el limite de deriva (la seguridad prima sobre seguir el plan).
+    if (max != null && fcProm > max + FC_MARGEN_SEGURIDAD_BPM) {
+      await this._ajustarPorFC(-FC_PASO_KMH, { ignorarDeriva: true });
+      this._emit('fc-auto-estado', { estado: 'seguridad', fcProm });
+      return;
+    }
+
+    if (ahora - this._bloqueInicioTs < FC_GRACIA_INICIO_MS) {
+      this._emit('fc-auto-estado', { estado: 'estabilizando', fcProm });
+      return;
+    }
+    if (ahora - this._ultimoAjusteFCTs < FC_COOLDOWN_MS) {
+      this._emit('fc-auto-estado', { estado: 'esperando', fcProm });
+      return;
+    }
+
+    if (max != null && fcProm > max + FC_DEADBAND_BPM) {
+      await this._ajustarPorFC(-FC_PASO_KMH);
+      this._emit('fc-auto-estado', { estado: 'bajando', fcProm });
+    } else if (min != null && fcProm < min - FC_DEADBAND_BPM) {
+      await this._ajustarPorFC(FC_PASO_KMH);
+      this._emit('fc-auto-estado', { estado: 'subiendo', fcProm });
+    } else {
+      this._emit('fc-auto-estado', { estado: 'en-zona', fcProm });
+    }
   }
 
   pausar() {
@@ -166,6 +263,7 @@ export class MotorEntrenamiento extends EventTarget {
     if (this.estado !== EstadoSesion.CORRIENDO) return;
     this._velocidadActual = Math.round((this._velocidadActual + delta) * 10) / 10;
     await this.caminadora.setVelocidad(this._velocidadActual);
+    this._ultimoAjusteFCTs = performance.now(); // un ajuste (manual o por FC) reinicia el cooldown del auto-ajuste
     this._emit('ajuste', { velocidad: this._velocidadActual, inclinacion: this._inclinacionActual });
   }
 
@@ -183,6 +281,10 @@ export class MotorEntrenamiento extends EventTarget {
     // pueden ajustar manualmente durante el bloque (ver ajustarVelocidad).
     this._velocidadActual = bloque.velocidad_kmh;
     this._inclinacionActual = bloque.inclinacion_pct;
+    this._velocidadBaseBloque = bloque.velocidad_kmh;
+    this._ventanaFC = [];
+    this._bloqueInicioTs = performance.now();
+    this._ultimoAjusteFCTs = performance.now();
     await this.caminadora.setVelocidad(this._velocidadActual);
     await this.caminadora.setInclinacion(this._inclinacionActual);
 
@@ -206,6 +308,7 @@ export class MotorEntrenamiento extends EventTarget {
         this._emit('estado-real', estado);
         ultimoKeepalive = performance.now();
       }
+      if (this._autoFC) await this._evaluarAutoFC(bloque);
       this._emit('tick', { restante, bloque, indice, total });
       await this._esperarSegundo();
       restante -= 1;

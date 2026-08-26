@@ -93,20 +93,30 @@ if (MODO_DEBUG) {
 // Monitor de frecuencia cardiaca (reloj)
 // ---------------------------------------------------------------------------
 
+function actualizarDisponibilidadAutoFC() {
+  $('check-auto-fc').disabled = !monitorFC.conectado;
+  $('aviso-auto-fc').classList.toggle('oculto', monitorFC.conectado);
+  if (!monitorFC.conectado) $('check-auto-fc').checked = false;
+}
+actualizarDisponibilidadAutoFC();
+
 monitorFC.addEventListener('conectado', () => {
   $('punto-fc').classList.add('conectado');
   $('texto-fc').textContent = '-- bpm';
+  actualizarDisponibilidadAutoFC();
 });
 
 monitorFC.addEventListener('desconectado', () => {
   $('punto-fc').classList.remove('conectado', 'sin-contacto');
   $('texto-fc').textContent = '❤ Reloj';
+  actualizarDisponibilidadAutoFC();
 });
 
 monitorFC.addEventListener('fc', (ev) => {
   const { bpm, contacto } = ev.detail;
   $('texto-fc').textContent = `${bpm} bpm`;
   $('punto-fc').classList.toggle('sin-contacto', contacto === false);
+  motor.actualizarFC(bpm);
 });
 
 $('btn-conectar-fc').addEventListener('click', async () => {
@@ -216,6 +226,8 @@ $('btn-iniciar-sesion').addEventListener('click', async () => {
     return;
   }
   diaRealSesion = diaDeHoy();
+  motor.activarAutoFC($('check-auto-fc').checked);
+  $('sesion-auto-fc-estado').classList.toggle('oculto', !$('check-auto-fc').checked);
   $('btn-iniciar-sesion').disabled = true;
   $('btn-iniciar-sesion').textContent = 'Conectando...';
   try {
@@ -260,6 +272,24 @@ motor.addEventListener('bloque-inicio', (ev) => {
   } else {
     fcEl.classList.add('oculto');
   }
+});
+
+const TEXTOS_AUTO_FC = {
+  'en-zona': '✓ FC en zona',
+  subiendo: '↑ FC baja, subiendo velocidad',
+  bajando: '↓ FC alta, bajando velocidad',
+  seguridad: '⚠ FC muy alta, bajando ya',
+  'sin-señal': '⚠ Sin señal del reloj',
+  esperando: '· esperando (cooldown)',
+  estabilizando: '· estabilizando FC del bloque',
+};
+
+motor.addEventListener('fc-auto-estado', (ev) => {
+  const { estado, fcProm } = ev.detail;
+  const el = $('sesion-auto-fc-estado');
+  el.className = `auto-fc-estado ${estado}`;
+  const textoFc = fcProm != null ? ` (${Math.round(fcProm)} bpm)` : '';
+  el.textContent = (TEXTOS_AUTO_FC[estado] || estado) + textoFc;
 });
 
 const anillo = $('anillo-progreso');
