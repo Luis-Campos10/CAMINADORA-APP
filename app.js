@@ -14,7 +14,7 @@ import {
 import { EditorPlan, renderEditorBloques } from './editor.js';
 import { pedirWakeLock, liberarWakeLock, avisarNuevoBloque, avisarSesionCompleta } from './extras.js';
 import { MonitorFC } from './hr.js';
-import { evaluarProgresion, listarCambiosAutomaticos, calcularInsightZona2 } from './progreso.js';
+import { evaluarProgresion, listarCambiosAutomaticos, calcularInsightZona2, reiniciarProgreso } from './progreso.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -70,14 +70,20 @@ function cambiarTab(nombre) {
 // Conexion
 // ---------------------------------------------------------------------------
 
+function sesionActiva() {
+  return motor.estado === EstadoSesion.CORRIENDO || motor.estado === EstadoSesion.PAUSADA;
+}
+
 caminadora.addEventListener('conectado', () => {
   $('punto-conexion').classList.add('conectado');
   $('texto-conexion').textContent = 'Conectada';
+  $('aviso-desconexion-cam').classList.add('oculto');
 });
 
 caminadora.addEventListener('desconectado', () => {
   $('punto-conexion').classList.remove('conectado');
   $('texto-conexion').textContent = 'Desconectada';
+  if (sesionActiva()) $('aviso-desconexion-cam').classList.remove('oculto');
 });
 
 if (MODO_DEBUG) {
@@ -105,12 +111,23 @@ monitorFC.addEventListener('conectado', () => {
   $('punto-fc').classList.add('conectado');
   $('texto-fc').textContent = '-- bpm';
   actualizarDisponibilidadAutoFC();
+  $('aviso-desconexion-fc').classList.add('oculto');
 });
 
 monitorFC.addEventListener('desconectado', () => {
   $('punto-fc').classList.remove('conectado', 'sin-contacto');
   $('texto-fc').textContent = '❤ Reloj';
   actualizarDisponibilidadAutoFC();
+  if (sesionActiva()) {
+    $('aviso-desconexion-fc').textContent = '⚠ Se perdió la conexión con el reloj. Reconectando...';
+    $('aviso-desconexion-fc').classList.remove('oculto');
+  }
+});
+
+monitorFC.addEventListener('reconexion-fallida', () => {
+  if (sesionActiva()) {
+    $('aviso-desconexion-fc').textContent = '⚠ No se pudo reconectar el reloj. Tocá "❤ Reloj" arriba para reintentar.';
+  }
 });
 
 monitorFC.addEventListener('fc', (ev) => {
@@ -578,8 +595,9 @@ $('btn-guardar-plan').addEventListener('click', () => {
 });
 
 $('btn-restaurar-plan').addEventListener('click', async () => {
-  if (!confirm('¿Restaurar el plan original? Se pierden todos los cambios que hiciste.')) return;
+  if (!confirm('¿Restaurar el plan original? Se pierden todos los cambios que hiciste (incluidos los de progresion automatica).')) return;
   plan = await editor.restaurarPorDefecto();
+  reiniciarProgreso();
   mostrarEditorDias();
 });
 

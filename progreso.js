@@ -26,6 +26,14 @@ export function listarCambiosAutomaticos() {
   return raw ? JSON.parse(raw) : [];
 }
 
+// Llamar cuando se restaura el plan por defecto -- si no, el sistema de
+// progresion queda pensando que ya aplico cambios recientes sobre un plan
+// que en realidad volvio a cero.
+export function reiniciarProgreso() {
+  localStorage.removeItem(CLAVE_CAMBIOS);
+  localStorage.removeItem(CLAVE_ESTADO);
+}
+
 function registrarCambio(descripcion) {
   const cambios = listarCambiosAutomaticos();
   cambios.push({ fecha: new Date().toISOString().slice(0, 10), descripcion });

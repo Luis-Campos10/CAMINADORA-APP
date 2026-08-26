@@ -17,12 +17,21 @@
 const SERVICE_HR = '0000180d-0000-1000-8000-00805f9b34fb';
 const CHAR_HR_MEASUREMENT = '00002a37-0000-1000-8000-00805f9b34fb';
 
+const RECONEXION_INTENTOS = 5;
+const RECONEXION_ESPERA_MS = 3000;
+
+function esperar(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export class MonitorFC extends EventTarget {
   constructor() {
     super();
     this.device = null;
     this.bpmActual = null;
     this.contactoDetectado = null; // true / false / null (desconocido)
+    this._reconectando = false;
+    this._desconexionManual = false;
   }
 
   get conectado() {
@@ -34,14 +43,19 @@ export class MonitorFC extends EventTarget {
   }
 
   async conectar() {
+    this._desconexionManual = false;
     if (!this.device) {
       // Requiere gesto del usuario (click) -- no llamar automaticamente.
       this.device = await navigator.bluetooth.requestDevice({
         filters: [{ services: [SERVICE_HR] }],
         optionalServices: [SERVICE_HR],
       });
-      this.device.addEventListener('gattserverdisconnected', () => this._emit('desconectado', {}));
+      this.device.addEventListener('gattserverdisconnected', () => this._onGattDesconectado());
     }
+    await this._conectarGatt();
+  }
+
+  async _conectarGatt() {
     const server = await this.device.gatt.connect();
     const service = await server.getPrimaryService(SERVICE_HR);
     const characteristic = await service.getCharacteristic(CHAR_HR_MEASUREMENT);
@@ -50,7 +64,35 @@ export class MonitorFC extends EventTarget {
     this._emit('conectado', {});
   }
 
+  _onGattDesconectado() {
+    this._emit('desconectado', {});
+    if (this._desconexionManual || this._reconectando) return;
+    this._reconectarSolo();
+  }
+
+  // Sin comandos repetidos ni intervencion, el reloj (como la caminadora)
+  // puede perder el enlace BLE solo. Reintenta en segundo plano sin pedirle
+  // nada al usuario (no hace falta el picker de nuevo, ya tenemos el
+  // dispositivo elegido).
+  async _reconectarSolo() {
+    this._reconectando = true;
+    this._emit('reconectando', {});
+    for (let intento = 1; intento <= RECONEXION_INTENTOS; intento++) {
+      await esperar(RECONEXION_ESPERA_MS);
+      try {
+        await this._conectarGatt();
+        this._reconectando = false;
+        return;
+      } catch (e) {
+        // sigue intentando
+      }
+    }
+    this._reconectando = false;
+    this._emit('reconexion-fallida', {});
+  }
+
   async desconectar() {
+    this._desconexionManual = true;
     if (this.conectado) this.device.gatt.disconnect();
   }
 

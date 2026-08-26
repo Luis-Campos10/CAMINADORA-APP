@@ -357,11 +357,14 @@ export class MotorEntrenamiento extends EventTarget {
       duracionTotal += bloque.duracion_seg;
     }
 
+    const abortada = completados < bloques.length;
+    // Marcar la sesion como terminada ANTES de desconectar: la UI usa el
+    // estado para distinguir una desconexion esperada (fin de sesion) de
+    // una perdida real de conexion a mitad de entrenamiento.
+    this.estado = abortada ? EstadoSesion.ABORTADA : EstadoSesion.COMPLETA;
+
     await this.caminadora.detener();
     await this.caminadora.desconectar();
-
-    const abortada = completados < bloques.length;
-    this.estado = abortada ? EstadoSesion.ABORTADA : EstadoSesion.COMPLETA;
 
     const resultado = {
       bloques_completados: completados,
