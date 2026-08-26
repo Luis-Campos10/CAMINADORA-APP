@@ -323,6 +323,20 @@ button.secundario {
 .auto-fc-estado.sin-señal { color: var(--rojo); background: rgba(255, 107, 107, 0.15); }
 .auto-fc-estado.esperando, .auto-fc-estado.estabilizando { color: var(--texto-tenue); background: var(--bg-elev-2); }
 
+.item-cambio {
+  font-size: 0.82rem;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--borde-suave);
+  color: var(--texto-tenue);
+}
+.item-cambio:last-child { border-bottom: none; }
+.item-cambio .fecha-cambio {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--texto-tenue-2);
+  margin-bottom: 2px;
+}
+
 .fc-objetivo {
   text-align: center;
   color: var(--amarillo);

@@ -9,6 +9,7 @@ const ARCHIVOS = [
   './editor.js',
   './extras.js',
   './hr.js',
+  './progreso.js',
   './plan_semanal.json',
   './manifest.json',
   './icons/icon.svg',

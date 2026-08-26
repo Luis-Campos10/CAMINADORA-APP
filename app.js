@@ -14,6 +14,7 @@ import {
 import { EditorPlan, renderEditorBloques } from './editor.js';
 import { pedirWakeLock, liberarWakeLock, avisarNuevoBloque, avisarSesionCompleta } from './extras.js';
 import { MonitorFC } from './hr.js';
+import { evaluarProgresion, listarCambiosAutomaticos, calcularInsightZona2 } from './progreso.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -338,6 +339,20 @@ motor.addEventListener('sesion-fin', (ev) => {
   $('resultado-detalle').textContent =
     `${r.bloques_completados}/${r.bloques_totales} bloques, ${r.duracion_total_seg}s, ` +
     `v.prom=${r.velocidad_promedio.toFixed(2)} km/h, incl.prom=${r.inclinacion_promedio.toFixed(2)}`;
+
+  // Progresion automatica: corre las reglas del plan (ver progreso.js)
+  // contra el historial actualizado; si algo cambio, se aplica ya y se
+  // muestra aca (sin pedir confirmacion, por eleccion del usuario).
+  const cambios = evaluarProgresion(plan, listarSesiones());
+  const elProgresion = $('resultado-progresion');
+  if (cambios.length) {
+    guardarPlan(plan);
+    elProgresion.innerHTML = '<strong>📈 Plan actualizado:</strong><br>' + cambios.join('<br>');
+    elProgresion.classList.remove('oculto');
+  } else {
+    elProgresion.classList.add('oculto');
+  }
+
   $('panel-resultado').classList.remove('oculto');
 });
 
@@ -435,11 +450,39 @@ function renderResumenHistorial(sesiones) {
   }
 }
 
+function renderProgreso(sesionesCronologicas) {
+  const cambios = listarCambiosAutomaticos();
+  const insight = calcularInsightZona2(sesionesCronologicas);
+  $('tarjeta-progreso').classList.toggle('oculto', cambios.length === 0 && !insight);
+
+  const elInsight = $('insight-zona2');
+  if (insight) {
+    const flecha = insight.mejora ? '↓' : '↑';
+    elInsight.textContent =
+      `Zona 2: FC promedio ${flecha} de ${insight.fcInicial} a ${insight.fcActual} bpm ` +
+      `en ${insight.sesiones} sesiones (${insight.fechaInicial} → ${insight.fechaFinal})` +
+      (insight.mejora ? ' -- señal de mejora de VO2max.' : '.');
+    elInsight.classList.remove('oculto');
+  } else {
+    elInsight.classList.add('oculto');
+  }
+
+  const cont = $('lista-cambios-auto');
+  cont.innerHTML = '';
+  for (const c of cambios.slice().reverse()) {
+    const div = document.createElement('div');
+    div.className = 'item-cambio';
+    div.innerHTML = `<span class="fecha-cambio">${c.fecha}</span>${c.descripcion}`;
+    cont.appendChild(div);
+  }
+}
+
 function renderHistorial() {
   const sesiones = listarSesiones().slice().reverse();
   renderEstadisticasGenerales(sesiones);
   renderListaHistorial(sesiones);
   renderResumenHistorial(sesiones);
+  renderProgreso(listarSesiones());
 }
 
 // ---------------------------------------------------------------------------

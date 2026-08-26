@@ -150,6 +150,8 @@ export class MotorEntrenamiento extends EventTarget {
     this._bloqueInicioTs = 0;
     this._ultimoAjusteFCTs = 0;
     this._velocidadBaseBloque = 0;
+    this._fcAcumuladorBloque = null; // null = no acumular (fuera de un bloque)
+    this._resumenFCBloques = []; // [{ nombre, zona, velocidad_kmh, fcPromedio }] de la sesion actual
   }
 
   _emit(tipo, detalle) {
@@ -163,11 +165,14 @@ export class MotorEntrenamiento extends EventTarget {
   }
 
   // Llamar cada vez que llega una lectura nueva del monitor de FC (ver hr.js).
-  // Seguro llamarlo aunque no haya sesion corriendo o autoFC este apagado.
+  // Seguro llamarlo aunque no haya sesion corriendo o autoFC este apagado --
+  // se registra igual para el resumen de FC por bloque (usado por
+  // progreso.js), independiente de si el auto-ajuste esta activado.
   actualizarFC(bpm) {
     this._fcUltimaLecturaTs = performance.now();
     this._ventanaFC.push(bpm);
     if (this._ventanaFC.length > FC_VENTANA_TAMANO) this._ventanaFC.shift();
+    if (this._fcAcumuladorBloque) this._fcAcumuladorBloque.push(bpm);
   }
 
   _fcPromedio() {
@@ -283,6 +288,7 @@ export class MotorEntrenamiento extends EventTarget {
     this._inclinacionActual = bloque.inclinacion_pct;
     this._velocidadBaseBloque = bloque.velocidad_kmh;
     this._ventanaFC = [];
+    this._fcAcumuladorBloque = [];
     this._bloqueInicioTs = performance.now();
     this._ultimoAjusteFCTs = performance.now();
     await this.caminadora.setVelocidad(this._velocidadActual);
@@ -313,6 +319,16 @@ export class MotorEntrenamiento extends EventTarget {
       await this._esperarSegundo();
       restante -= 1;
     }
+    if (this._fcAcumuladorBloque && this._fcAcumuladorBloque.length) {
+      const fcPromedio = this._fcAcumuladorBloque.reduce((a, b) => a + b, 0) / this._fcAcumuladorBloque.length;
+      this._resumenFCBloques.push({
+        nombre: bloque.nombre,
+        zona: bloque.zona,
+        velocidad_kmh: bloque.velocidad_kmh,
+        fcPromedio: Math.round(fcPromedio * 10) / 10,
+      });
+    }
+    this._fcAcumuladorBloque = null;
     this._emit('bloque-fin', { bloque, indice, total });
     return true;
   }
@@ -320,6 +336,7 @@ export class MotorEntrenamiento extends EventTarget {
   async ejecutarSesion(bloques) {
     this._abortar = false;
     this._pausado = false;
+    this._resumenFCBloques = [];
     this.estado = EstadoSesion.CORRIENDO;
 
     await this.caminadora.conectar();
@@ -353,6 +370,7 @@ export class MotorEntrenamiento extends EventTarget {
       velocidad_promedio: velocidades.length ? velocidades.reduce((a, b) => a + b, 0) / velocidades.length : 0,
       inclinacion_promedio: inclinaciones.length ? inclinaciones.reduce((a, b) => a + b, 0) / inclinaciones.length : 0,
       abortada,
+      fc_por_bloque: this._resumenFCBloques,
     };
     this._emit('sesion-fin', resultado);
     return resultado;
